@@ -22,6 +22,9 @@ let colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0], [0, 255, 255
 
 let gui;
 
+let {VerletParticle2D, VerletSpring2D} = toxi.physics2d;
+let {GravityBehavior} = toxi.physics2d.behaviors;
+
 let physics;
 
 let cells = []
@@ -132,12 +135,45 @@ function clipCells(cells, voronoiCells){
     return clippedCells;
 }
 
-function drawPoly(p5, poly){
+function drawPoly(p5, poly) {
+    let centerX = p5.width / 2;
+    let centerY = p5.height / 2;
+
     p5.beginShape();
-    poly.vertices.forEach(function(v){
+    for (let i = 0; i < poly.vertices.length; i++) {
+        let v = poly.vertices[i];
         p5.vertex(v.x, v.y);
-    });
-    p5.endShape(p5.CLOSE);
+    }
+    p5.endShape();
+
+    for (let i = 0; i < poly.vertices.length; i++) {
+        let v1 = poly.vertices[i];
+        let v2 = poly.vertices[(i + 1) % poly.vertices.length];
+
+        // Calculate midpoint of the edge
+        let midX = (v1.x + v2.x) / 2;
+        let midY = (v1.y + v2.y) / 2;
+
+        // Calculate distance from edge midpoint to organoid center
+        let distanceToCenter = Math.sqrt((midX - centerX) ** 2 + (midY - centerY) ** 2);
+
+        let outerThreshold = guiParams["organoid size"] + guiParams["cell size"] / 2;
+        let innerThreshold = guiParams["organoid size"] - guiParams["cell size"] / 2;
+
+        let strokeColor;
+        if (distanceToCenter > outerThreshold) {
+            strokeColor = 'lime';  // Outer edge
+        } else if (distanceToCenter < innerThreshold) {
+            strokeColor = 'red';   // Inner edge
+        } else {
+            strokeColor = 'blue'; // Side edge
+        }
+
+        p5.stroke(strokeColor);
+        p5.line(v1.x, v1.y, v2.x, v2.y);
+    }
+
+    p5.stroke('black');
 }
 
 function drawVoronoiCell(p5, cell){
